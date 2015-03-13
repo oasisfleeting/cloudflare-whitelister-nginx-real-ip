@@ -1,6 +1,7 @@
 # Whitelist Cloudflare IPs 
 Bash script for whitelisting cloudflare ips as well as setting nginx config to show real ips.
-Also opens port 2408 to cloudflare for railgun setup.
+Also opens port 2408 to cloudflare for railgun setup. To disable the railgun setup remove the line that opens port 2408. Otherwise create a new bash script ``` touch cloudflarewhitelister.sh ``` , copy and paste the contents into the file. Set the file to be executable chmod +x cloudflarewhitelister.sh 
+And just set it to run a couple times a day. 
 
 
 ```
