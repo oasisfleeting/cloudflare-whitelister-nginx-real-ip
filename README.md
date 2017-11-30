@@ -1,47 +1,43 @@
 # Whitelist Cloudflare IPs 
-Bash script for whitelisting cloudflare ips as well as setting nginx config to show real ips.
-Also opens port 2408 to cloudflare for railgun setup. To disable the railgun setup remove the line that opens port 2408. Otherwise create a new bash script ``` touch cloudflarewhitelister.sh ``` , copy and paste the contents into the file. Set the file to be executable chmod +x cloudflarewhitelister.sh 
-And just set it to run a couple times a day. 
+Bash script based on their [support page](https://support.cloudflare.com/hc/en-us/articles/200169166-How-do-I-whitelist-CloudFlare-s-IP-addresses-in-iptables-) for whitelisting cloudflare ips as well as setting nginx config to show real ips.
+Create a new bash script ``` touch cloudflarewhitelister.sh ``` , copy and paste the contents into the file. Set the file to be executable chmod +x cloudflarewhitelister.sh 
+And just set it to run a couple times a day.
 
+Uncomment the RHEL/CentOS lines and comment out the Debian/Ubuntu lines at the end, depending on your ditro.
 
 ```
 #!/bin/bash
 echo "#Cloudflare" > /etc/nginx/conf.d/00_real_ip_cloudflare_00.conf;
-        iptables -F cloudflare;
-        iptables -N cloudflare;
-for i in 'curl https://www.cloudflare.com/ips-v4'; do
-        iptables -A cloudflare -p tcp --sport 2408 -s $i -j ACCEPT;
-        iptables -A cloudflare -p tcp -m multiport --dports http,https -s $i -j ACCEPT;
-        echo "set_real_ip_from $i;" >> /etc/nginx/conf.d/00_real_ip_cloudflare_00.conf;
+iptables -F cloudflare;
+iptables -N cloudflare;
+for ip in `curl https://www.cloudflare.com/ips-v4`; do
+        iptables -A cloudflare -I INPUT -p tcp -m multiport --dports http,https -s "$ip" -j ACCEPT;
+        echo "set_real_ip_from $ip;" >> /etc/nginx/conf.d/00_real_ip_cloudflare_00.conf;
 done
 
-iptables-save > /etc/sysconfig/iptables
+ip6tables -F cloudflare;
+ip6tables -N cloudflare;
+for ip in `curl https://www.cloudflare.com/ips-v6`; do
+        ip6tables -A cloudflare -I INPUT -p tcp -m multiport --dports http,https -s "$ip" -j ACCEPT;
+        echo "set_real_ip_from $ip;" >> /etc/nginx/conf.d/00_real_ip_cloudflare_00.conf;
+done
+
 echo "real_ip_header CF-Connecting-IP;" >> /etc/nginx/conf.d/00_real_ip_cloudflare_00.conf;
+
+#Debian/Ubuntu
+iptables-save > /etc/iptables/rules.v4
+ip6tables-save > /etc/iptables/rules.v6
+
+#RHEL/CentOS
+#iptables-save > /etc/sysconfig/iptables
+#ip6tables-save > /etc/sysconfig/ip6tables
 ```
 
 # Nginx Real IP
- Since CloudFlare acts as a reverse proxy, all connections now come from one of CloudFlare's IP addresses. CloudFlare follows industry standards and includes the originating IP address in the X-Forwarded-For header. The CF-Connecting-IP header may also be used. To preserve the originating IP of your visitor, use the following Nginx module and parameters:
+ Since CloudFlare acts as a reverse proxy, all connections now come from one of CloudFlare's IP addresses. CloudFlare follows industry standards and includes the originating IP address in the X-Forwarded-For header. The CF-Connecting-IP header may also be used. To preserve the originating IP of your visitor, ensure the following Nginx module is available:
 
 http://nginx.org/en/docs/http/ngx_http_realip_module.html
-```
-   # Cloudflare
-   set_real_ip_from   199.27.128.0/21;
-   set_real_ip_from   173.245.48.0/20;
-   set_real_ip_from   103.21.244.0/22;
-   set_real_ip_from   103.22.200.0/22;
-   set_real_ip_from   103.31.4.0/22;
-   set_real_ip_from   141.101.64.0/18;
-   set_real_ip_from   108.162.192.0/18;
-   set_real_ip_from   190.93.240.0/20;
-   set_real_ip_from   188.114.96.0/20;   
-   set_real_ip_from   197.234.240.0/22;
-   set_real_ip_from   198.41.128.0/17;
-   set_real_ip_from   162.158.0.0/15;
-   set_real_ip_from   104.16.0.0/12;
-   set_real_ip_from   2400:cb00::/32;
-   set_real_ip_from   2606:4700::/32;
-   set_real_ip_from   2803:f800::/32;
-   set_real_ip_from   2405:b500::/32;
-   set_real_ip_from   2405:8100::/32;
-   real_ip_header     CF-Connecting-IP;
-```
+
+You can verify that it was compiled in your current NGINX installation with the `nginx -V` command, checking for the `--with-http_realip_module`.
+
+By default the `nginx.conf` file includes all configurations in the `/etc/nginx/conf.d/` folder, so this script should automatically add the correct parameters to rewrite all of Cloudflare's IPs.
