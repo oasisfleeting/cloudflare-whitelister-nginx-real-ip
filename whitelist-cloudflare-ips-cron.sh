@@ -17,9 +17,9 @@ done
 echo "real_ip_header CF-Connecting-IP;" >> /etc/nginx/conf.d/00_real_ip_cloudflare_00.conf;
 
 #Debian/Ubuntu
-iptables-save > /etc/iptables/rules.v4
-ip6tables-save > /etc/iptables/rules.v6
+iptables-save > /etc/iptables/rules.v4;
+ip6tables-save > /etc/iptables/rules.v6;
 
 #RHEL/CentOS
-#iptables-save > /etc/sysconfig/iptables
-#ip6tables-save > /etc/sysconfig/ip6tables
+#iptables-save > /etc/sysconfig/iptables;
+#ip6tables-save > /etc/sysconfig/ip6tables;
